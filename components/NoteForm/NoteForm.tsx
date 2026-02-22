@@ -26,17 +26,13 @@ export default function NoteForm() {
     },
   });
 
-  const handleChange = (field: keyof CreateNoteParams, value: string) => {
-    setDraft({ ...draft, [field]: value });
-  };
-
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
 
     const payload: CreateNoteParams = {
       title: draft.title.trim(),
       content: draft.content.trim(),
-      tag: (draft.tag as NoteTag) ?? 'Todo',
+      tag: draft.tag,
     };
 
     mutation.mutate(payload);
@@ -53,7 +49,7 @@ export default function NoteForm() {
           className={css.input}
           type="text"
           value={draft.title}
-          onChange={(e) => handleChange('title', e.target.value)}
+          onChange={(e) => setDraft({ ...draft, title: e.target.value })}
           required
         />
       </div>
@@ -66,7 +62,7 @@ export default function NoteForm() {
           id="content"
           className={css.textarea}
           value={draft.content}
-          onChange={(e) => handleChange('content', e.target.value)}
+          onChange={(e) => setDraft({ ...draft, content: e.target.value })}
           required
         />
       </div>
@@ -79,7 +75,7 @@ export default function NoteForm() {
           id="tag"
           className={css.select}
           value={draft.tag}
-          onChange={(e) => handleChange('tag', e.target.value)}
+          onChange={(e) => setDraft({ ...draft, tag: e.target.value as NoteTag })}
           required
         >
           {TAGS.map((t) => (
