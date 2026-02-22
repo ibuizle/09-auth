@@ -2,23 +2,20 @@ import { api } from './api';
 import type { Note } from '@/types/note';
 import type { User } from '@/types/user';
 
-// Notes
-interface FetchNotesResponse {
-  notes: Note[];
-  totalPages: number;
-}
-
-interface FetchNotesParams {
+type FetchNotesParams = {
   page: number;
-  perPage: number; // keep for compatibility; backend expects 12
+  perPage: number;
   search?: string;
   tag?: string;
-}
+};
 
-export type CreateNoteParams = Pick<Note, 'title' | 'content' | 'tag'>;
+type NotesResponse = {
+  notes: Note[];
+  totalPages: number;
+};
 
-export async function fetchNotes(params: FetchNotesParams): Promise<FetchNotesResponse> {
-  const { data } = await api.get<FetchNotesResponse>('/notes', {
+export async function fetchNotes(params: FetchNotesParams): Promise<NotesResponse> {
+  const { data } = await api.get<NotesResponse>('/notes', {
     params: {
       page: params.page,
       perPage: 12,
@@ -26,6 +23,7 @@ export async function fetchNotes(params: FetchNotesParams): Promise<FetchNotesRe
       ...(params.tag ? { tag: params.tag } : {}),
     },
   });
+
   return data;
 }
 
@@ -34,8 +32,8 @@ export async function fetchNoteById(id: string): Promise<Note> {
   return data;
 }
 
-export async function createNote(note: CreateNoteParams): Promise<Note> {
-  const { data } = await api.post<Note>('/notes', note);
+export async function createNote(payload: Pick<Note, 'title' | 'content' | 'tag'>): Promise<Note> {
+  const { data } = await api.post<Note>('/notes', payload);
   return data;
 }
 
@@ -44,18 +42,18 @@ export async function deleteNote(id: string): Promise<Note> {
   return data;
 }
 
-// Auth
-export type AuthCredentials = {
+// -------- AUTH --------
+type AuthPayload = {
   email: string;
   password: string;
 };
 
-export async function register(payload: AuthCredentials): Promise<User> {
+export async function register(payload: AuthPayload): Promise<User> {
   const { data } = await api.post<User>('/auth/register', payload);
   return data;
 }
 
-export async function login(payload: AuthCredentials): Promise<User> {
+export async function login(payload: AuthPayload): Promise<User> {
   const { data } = await api.post<User>('/auth/login', payload);
   return data;
 }
@@ -66,16 +64,16 @@ export async function logout(): Promise<void> {
 
 export async function checkSession(): Promise<User | null> {
   const { data } = await api.get<User | null>('/auth/session');
-  return data ?? null;
+  return data;
 }
 
-// Users
+// -------- USER --------
 export async function getMe(): Promise<User> {
   const { data } = await api.get<User>('/users/me');
   return data;
 }
 
-export async function updateMe(payload: Partial<Pick<User, 'username'>>): Promise<User> {
+export async function updateMe(payload: Partial<User>): Promise<User> {
   const { data } = await api.patch<User>('/users/me', payload);
   return data;
 }
