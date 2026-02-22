@@ -1,8 +1,7 @@
 'use client';
 
-import React from 'react';
-import { useRouter } from 'next/navigation';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useRouter } from 'next/navigation';
 
 import { createNote, type CreateNoteParams } from '@/lib/api/clientApi';
 import { useNoteStore } from '@/lib/store/noteStore';
@@ -10,96 +9,103 @@ import type { NoteTag } from '@/types/note';
 
 import css from './NoteForm.module.css';
 
+const TAGS: NoteTag[] = ['Todo', 'Work', 'Personal', 'Meeting', 'Shopping'];
+
 export default function NoteForm() {
   const router = useRouter();
   const queryClient = useQueryClient();
-  const { draft, setDraft, clearDraft } = useNoteStore();
+
+  const { draft, setDraft, resetDraft } = useNoteStore();
 
   const mutation = useMutation({
-    mutationFn: (note: CreateNoteParams) => createNote(note),
+    mutationFn: (payload: CreateNoteParams) => createNote(payload),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['notes'] });
+      resetDraft();
+      router.back();
+    },
   });
 
-  const handleSubmit = async (formData: FormData) => {
-    const title = String(formData.get('title') ?? '').trim();
-    const content = String(formData.get('content') ?? '').trim();
-    const tag = String(formData.get('tag') ?? 'Todo') as NoteTag;
-
-    const note: CreateNoteParams = { title, content, tag };
-
-    try {
-      await mutation.mutateAsync(note);
-      clearDraft();
-      await queryClient.invalidateQueries({ queryKey: ['notes'] });
-      router.back();
-    } catch {
-      // error state показуємо через mutation.isError
-    }
+  const handleChange = (field: keyof CreateNoteParams, value: string) => {
+    setDraft({ ...draft, [field]: value });
   };
 
-  const onTitleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setDraft({ title: e.target.value });
-  };
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
 
-  const onContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
-    setDraft({ content: e.target.value });
-  };
+    const payload: CreateNoteParams = {
+      title: draft.title.trim(),
+      content: draft.content.trim(),
+      tag: (draft.tag as NoteTag) ?? 'Todo',
+    };
 
-  const onTagChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    setDraft({ tag: e.target.value });
+    mutation.mutate(payload);
   };
 
   return (
-    <form action={handleSubmit} className={css.form}>
-      <div className={css.formGroup}>
-        <label>
+    <form className={css.form} onSubmit={handleSubmit}>
+      <div className={css.field}>
+        <label htmlFor="title" className={css.label}>
           Title
-          <input
-            className={css.input}
-            name="title"
-            value={draft.title}
-            onChange={onTitleChange}
-            placeholder="Title"
-          />
         </label>
+        <input
+          id="title"
+          className={css.input}
+          type="text"
+          value={draft.title}
+          onChange={(e) => handleChange('title', e.target.value)}
+          required
+        />
       </div>
 
-      <div className={css.formGroup}>
-        <label>
+      <div className={css.field}>
+        <label htmlFor="content" className={css.label}>
           Content
-          <textarea
-            className={css.textarea}
-            name="content"
-            value={draft.content}
-            onChange={onContentChange}
-            placeholder="Content"
-          />
         </label>
+        <textarea
+          id="content"
+          className={css.textarea}
+          value={draft.content}
+          onChange={(e) => handleChange('content', e.target.value)}
+          required
+        />
       </div>
 
-      <div className={css.formGroup}>
-        <label>
+      <div className={css.field}>
+        <label htmlFor="tag" className={css.label}>
           Tag
-          <select className={css.select} name="tag" value={draft.tag} onChange={onTagChange}>
-            <option value="Todo">Todo</option>
-            <option value="Work">Work</option>
-            <option value="Personal">Personal</option>
-            <option value="Meeting">Meeting</option>
-            <option value="Shopping">Shopping</option>
-          </select>
         </label>
+        <select
+          id="tag"
+          className={css.select}
+          value={draft.tag}
+          onChange={(e) => handleChange('tag', e.target.value)}
+          required
+        >
+          {TAGS.map((t) => (
+            <option key={t} value={t}>
+              {t}
+            </option>
+          ))}
+        </select>
       </div>
-
-      {mutation.isError && <p className={css.error}>Failed to create note</p>}
 
       <div className={css.actions}>
-        <button type="button" className={css.cancelButton} onClick={() => router.back()}>
-          Cancel
+        <button className={css.submitButton} type="submit" disabled={mutation.isPending}>
+          {mutation.isPending ? 'Saving...' : 'Save'}
         </button>
 
-        <button type="submit" className={css.submitButton} disabled={mutation.isPending}>
-          {mutation.isPending ? 'Creating...' : 'Create'}
+        <button
+          className={css.cancelButton}
+          type="button"
+          onClick={() => router.back()}
+          disabled={mutation.isPending}
+        >
+          Cancel
         </button>
       </div>
+
+      {mutation.isError && <p className={css.error}>Error creating note</p>}
     </form>
   );
 }

@@ -1,21 +1,22 @@
 import { api } from './api';
-import type { Note } from '@/types/note';
+import type { Note, NoteTag } from '@/types/note';
 import type { User } from '@/types/user';
 
-type FetchNotesParams = {
+// ---------- Notes ----------
+export type FetchNotesParams = {
   page: number;
   perPage: number;
   search?: string;
   tag?: string;
 };
 
-type NotesResponse = {
+export type FetchNotesResponse = {
   notes: Note[];
   totalPages: number;
 };
 
-export async function fetchNotes(params: FetchNotesParams): Promise<NotesResponse> {
-  const { data } = await api.get<NotesResponse>('/notes', {
+export async function fetchNotes(params: FetchNotesParams): Promise<FetchNotesResponse> {
+  const { data } = await api.get<FetchNotesResponse>('/notes', {
     params: {
       page: params.page,
       perPage: 12,
@@ -32,7 +33,13 @@ export async function fetchNoteById(id: string): Promise<Note> {
   return data;
 }
 
-export async function createNote(payload: Pick<Note, 'title' | 'content' | 'tag'>): Promise<Note> {
+export type CreateNoteParams = {
+  title: string;
+  content: string;
+  tag: NoteTag;
+};
+
+export async function createNote(payload: CreateNoteParams): Promise<Note> {
   const { data } = await api.post<Note>('/notes', payload);
   return data;
 }
@@ -42,7 +49,7 @@ export async function deleteNote(id: string): Promise<Note> {
   return data;
 }
 
-// -------- AUTH --------
+// ---------- Auth ----------
 type AuthPayload = {
   email: string;
   password: string;
@@ -67,7 +74,7 @@ export async function checkSession(): Promise<User | null> {
   return data;
 }
 
-// -------- USER --------
+// ---------- User ----------
 export async function getMe(): Promise<User> {
   const { data } = await api.get<User>('/users/me');
   return data;
