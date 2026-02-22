@@ -19,7 +19,8 @@ export async function fetchNotes(params: FetchNotesParams): Promise<FetchNotesRe
   const { data } = await api.get<FetchNotesResponse>('/notes', {
     params: {
       page: params.page,
-      perPage: 12,
+      // ✅ ВАЖЛИВО: використовуємо params.perPage, а не хардкод 12
+      perPage: params.perPage ?? 12,
       ...(params.search ? { search: params.search } : {}),
       ...(params.tag ? { tag: params.tag } : {}),
     },
